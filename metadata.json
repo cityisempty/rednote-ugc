@@ -1,0 +1,5 @@
+{
+  "name": "Xiaohongshu Note AI Generator",
+  "description": "An AI-powered content creation tool specifically designed for Xiaohongshu (Red). Generate creative outlines, engaging copy with emojis, and high-quality visual assets using Gemini AI.",
+  "requestFramePermissions": []
+}
