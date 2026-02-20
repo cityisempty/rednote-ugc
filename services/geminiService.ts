@@ -7,7 +7,8 @@ export class GeminiService {
   private ai: GoogleGenAI;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    /* Fix: Always use process.env.API_KEY directly when initializing the @google/genai client instance. */
+    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
   async generateOutline(info: ProductInfo): Promise<NoteOutline> {
@@ -38,7 +39,8 @@ export class GeminiService {
       },
     });
 
-    return JSON.parse(response.text);
+    /* Fix: Directly access .text property from GenerateContentResponse */
+    return JSON.parse(response.text || '{}');
   }
 
   async generateFullNote(outline: NoteOutline, info: ProductInfo): Promise<{ title: string; content: string; tags: string[] }> {
@@ -66,7 +68,8 @@ export class GeminiService {
       },
     });
 
-    return JSON.parse(response.text);
+    /* Fix: Directly access .text property from GenerateContentResponse */
+    return JSON.parse(response.text || '{}');
   }
 
   async generateImage(imagePrompt: string): Promise<string> {
@@ -82,6 +85,7 @@ export class GeminiService {
       },
     });
 
+    /* Fix: Iterate through all parts to find the image part as per guidelines */
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         return `data:image/png;base64,${part.inlineData.data}`;

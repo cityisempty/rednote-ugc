@@ -1,7 +1,7 @@
 
 export enum AppView {
   OUTLINE_GENERATOR = 'OUTLINE_GENERATOR',
-  NOTE_GENERATION = 'NOTE_GENERATION',
+  PUBLISH_PLAN = 'PUBLISH_PLAN',
   SETTINGS = 'SETTINGS'
 }
 
@@ -20,6 +20,8 @@ export interface NoteOutline {
   imagePrompts: string[];
 }
 
+export type TaskStatus = 'draft' | 'running' | 'paused' | 'aborted' | 'completed';
+
 export interface GeneratedNote {
   id: string;
   productName: string;
@@ -27,7 +29,15 @@ export interface GeneratedNote {
   title: string;
   content: string;
   tags: string[];
-  images: string[]; // base64 or urls
+  images: string[];
   createdAt: string;
-  status: 'pending' | 'completed' | 'failed';
+  
+  // 计划相关
+  publishFrequency: number; // 每天发布几次
+  durationDays: number;     // 持续几天
+  order: number;            // 排序权重
+  status: TaskStatus;
+  successCount: number;     // 已成功生成/发布的次数
+  startDate?: string;       // 计算出的开始日期
+  endDate?: string;         // 计算出的结束日期
 }
