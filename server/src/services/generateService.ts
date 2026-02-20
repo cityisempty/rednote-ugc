@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma';
-import { geminiService } from './geminiService';
+import { aiProvider } from './aiProvider';
 import { CREDIT_COSTS, ProductInfo, NoteOutline } from '../../../shared/types/index';
 
 async function checkAndDeductCredits(userId: string, cost: number, type: string, description: string, noteId?: string) {
@@ -28,12 +28,12 @@ async function checkAndDeductCredits(userId: string, cost: number, type: string,
 export class GenerateService {
   async generateOutline(userId: string, productInfo: ProductInfo) {
     await checkAndDeductCredits(userId, CREDIT_COSTS.GENERATE_OUTLINE, 'GENERATE_OUTLINE', `生成大纲: ${productInfo.name}`);
-    return geminiService.generateOutline(productInfo);
+    return aiProvider.generateOutline(productInfo);
   }
 
   async generateNote(userId: string, outline: NoteOutline, productInfo: ProductInfo) {
     await checkAndDeductCredits(userId, CREDIT_COSTS.GENERATE_NOTE, 'GENERATE_NOTE', `生成笔记: ${productInfo.name}`);
-    const noteContent = await geminiService.generateFullNote(outline, productInfo);
+    const noteContent = await aiProvider.generateFullNote(outline, productInfo);
 
     const note = await prisma.note.create({
       data: {
@@ -55,7 +55,7 @@ export class GenerateService {
 
   async generateImage(userId: string, prompt: string, noteId?: string) {
     await checkAndDeductCredits(userId, CREDIT_COSTS.GENERATE_IMAGE, 'GENERATE_IMAGE', '生成图片', noteId);
-    const imageUrl = await geminiService.generateImage(prompt);
+    const imageUrl = await aiProvider.generateImage(prompt);
 
     if (noteId) {
       const note = await prisma.note.findUnique({ where: { id: noteId } });
@@ -72,7 +72,7 @@ export class GenerateService {
 
   async analyzeNote(userId: string, noteContent: string) {
     await checkAndDeductCredits(userId, CREDIT_COSTS.ANALYZE_NOTE, 'GENERATE_OUTLINE', '分析笔记模板');
-    return geminiService.analyzeNote(noteContent);
+    return aiProvider.analyzeNote(noteContent);
   }
 }
 
