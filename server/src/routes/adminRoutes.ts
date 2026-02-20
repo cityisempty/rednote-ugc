@@ -8,6 +8,7 @@ router.use(authenticate, requireAdmin);
 router.get('/stats', getStats);
 router.get('/users', getUsers);
 router.put('/users/:id', updateUser);
+router.patch('/users/:id', updateUser);
 router.post('/cards/generate', generateCards);
 router.get('/cards', listCards);
 export default router;

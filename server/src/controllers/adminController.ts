@@ -5,29 +5,23 @@ import { AuthRequest } from '../middleware/auth';
 
 export const getStats = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const [totalUsers, totalNotes, creditStats, cardStats] = await Promise.all([
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [totalUsers, newUsersThisWeek, totalNotes, creditSpent, rechargeCount] = await Promise.all([
       prisma.user.count(),
+      prisma.user.count({ where: { createdAt: { gte: oneWeekAgo } } }),
       prisma.note.count(),
       prisma.transaction.aggregate({ _sum: { amount: true }, where: { amount: { lt: 0 } } }),
-      prisma.rechargeCard.groupBy({ by: ['isUsed'], _count: true }),
+      prisma.transaction.count({ where: { type: 'RECHARGE' } }),
     ]);
 
-    const cardsGenerated = cardStats.reduce((a, b) => a + b._count, 0);
-    const cardsRedeemed = cardStats.find(c => c.isUsed)?._count || 0;
-
-    const recentUsers = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: { id: true, email: true, username: true, role: true, credits: true, createdAt: true, updatedAt: true },
-    });
-
     sendSuccess(res, {
-      totalUsers,
-      totalNotes,
-      totalCreditsUsed: Math.abs(creditStats._sum.amount || 0),
-      cardsGenerated,
-      cardsRedeemed,
-      recentUsers: recentUsers.map(u => ({ ...u, createdAt: u.createdAt.toISOString(), updatedAt: u.updatedAt.toISOString() })),
+      users: { total: totalUsers, newThisWeek: newUsersThisWeek },
+      notes: { total: totalNotes },
+      transactions: {
+        totalRecharges: rechargeCount,
+        totalSpent: Math.abs(creditSpent._sum.amount || 0),
+      },
+      credits: { totalDistributed: 0 },
     });
   } catch (e: unknown) { sendError(res, (e as Error).message, 400); }
 };
@@ -60,9 +54,14 @@ export const getUsers = async (req: AuthRequest, res: Response): Promise<void> =
 export const updateUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { credits, role } = req.body;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {};
+    if (credits !== undefined) data.credits = credits;
+    if (role) data.role = role;
+    const id = req.params.id as string;
     const user = await prisma.user.update({
-      where: { id: req.params.id },
-      data: { ...(credits !== undefined && { credits }), ...(role && { role }) },
+      where: { id },
+      data,
       select: { id: true, email: true, username: true, role: true, credits: true, createdAt: true, updatedAt: true },
     });
     sendSuccess(res, { ...user, createdAt: user.createdAt.toISOString(), updatedAt: user.updatedAt.toISOString() });

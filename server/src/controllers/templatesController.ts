@@ -7,9 +7,14 @@ export const getTemplates = async (req: AuthRequest, res: Response): Promise<voi
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
-    const category = req.query.category as string | undefined;
+    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
 
-    const where = { isPublic: true, ...(category ? { category } : {}) };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = { isPublic: true };
+    if (category) where.category = category;
+    if (search) where.name = { contains: search, mode: 'insensitive' };
+
     const [templates, total] = await Promise.all([
       prisma.template.findMany({ where, orderBy: [{ isOfficial: 'desc' }, { usageCount: 'desc' }], skip: (page - 1) * limit, take: limit }),
       prisma.template.count({ where }),
@@ -20,10 +25,11 @@ export const getTemplates = async (req: AuthRequest, res: Response): Promise<voi
 
 export const getTemplate = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const template = await prisma.template.findFirst({ where: { id: req.params.id, isPublic: true } });
+    const id = req.params.id as string;
+    const template = await prisma.template.findFirst({ where: { id, isPublic: true } });
     if (!template) { sendError(res, '模板不存在', 404); return; }
 
-    await prisma.template.update({ where: { id: req.params.id }, data: { usageCount: { increment: 1 } } });
+    await prisma.template.update({ where: { id }, data: { usageCount: { increment: 1 } } });
     sendSuccess(res, template);
   } catch (e: unknown) { sendError(res, (e as Error).message, 400); }
 };
@@ -39,23 +45,5 @@ export const createTemplate = async (req: AuthRequest, res: Response): Promise<v
       data: { name, description, category, titlePattern, contentStructure, styleGuide, hashtagStrategy: hashtagStrategy || [], createdById: req.user!.userId },
     });
     sendSuccess(res, template, '模板创建成功', 201);
-  } catch (e: unknown) { sendError(res, (e as Error).message, 400); }
-};
-
-export const getUserTransactions = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-
-    const [transactions, total] = await Promise.all([
-      prisma.transaction.findMany({
-        where: { userId: req.user!.userId },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.transaction.count({ where: { userId: req.user!.userId } }),
-    ]);
-    sendSuccess(res, { items: transactions, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (e: unknown) { sendError(res, (e as Error).message, 400); }
 };

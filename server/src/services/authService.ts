@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import prisma from '../utils/prisma';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
-import { RegisterRequest, LoginRequest, AuthResponse, WELCOME_CREDITS } from '../../../shared/types/index';
+import { RegisterRequest, LoginRequest, AuthResponse, WELCOME_CREDITS, Role } from '../../../shared/types/index';
 
 const SALT_ROUNDS = 10;
 
@@ -9,7 +9,7 @@ const formatUser = (user: { id: string; email: string; username: string; role: s
   id: user.id,
   email: user.email,
   username: user.username,
-  role: user.role as 'USER' | 'ADMIN',
+  role: user.role as Role,
   credits: user.credits,
   createdAt: user.createdAt.toISOString(),
   updatedAt: user.updatedAt.toISOString(),
