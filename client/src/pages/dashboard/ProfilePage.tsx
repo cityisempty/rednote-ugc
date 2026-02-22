@@ -123,7 +123,7 @@ const ProfilePage: React.FC = () => {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition font-mono"
-            placeholder="输入充值卡号 (如: REDINK-XXXX-XXXX-XXXX)"
+            placeholder="输入充值卡号 (如: MIAOJI-XXXX-XXXX-XXXX)"
           />
           <button
             type="submit"

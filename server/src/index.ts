@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { errorHandler } from './middleware/errorHandler';
 import { globalLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/authRoutes';
@@ -9,6 +10,7 @@ import generateRoutes from './routes/generateRoutes';
 import notesRoutes from './routes/notesRoutes';
 import templatesRoutes from './routes/templatesRoutes';
 import adminRoutes from './routes/adminRoutes';
+import configRoutes from './routes/configRoutes';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -19,6 +21,7 @@ app.use(cors({ origin: [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(globalLimiter);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -30,6 +33,7 @@ app.use('/api/generate', generateRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/templates', templatesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/config', configRoutes);
 
 // Error handler
 app.use(errorHandler);

@@ -3,7 +3,7 @@ import { apiClient } from './client';
 export const generateApi = {
   generateOutline: (data: object) => apiClient.post('/generate/outline', data),
   generateNote: (data: object) => apiClient.post('/generate/note', data),
-  generateImage: (data: { prompt: string }) => apiClient.post('/generate/image', data),
+  generateImage: (data: { prompt: string; noteId?: string; pageNumber?: number }) => apiClient.post('/generate/image', data),
   analyzeNote: (data: { content: string }) => apiClient.post('/generate/analyze', data),
 };
 
@@ -33,4 +33,13 @@ export const adminApi = {
   updateUser: (id: string, data: object) => apiClient.patch(`/admin/users/${id}`, data),
   generateCards: (data: object) => apiClient.post('/admin/cards/generate', data),
   listCards: (params?: object) => apiClient.get('/admin/cards', { params }),
+};
+
+export const adminConfigApi = {
+  getProviders: () => apiClient.get('/admin/config/providers'),
+  createProvider: (data: object) => apiClient.post('/admin/config/providers', data),
+  updateProvider: (id: string, data: object) => apiClient.put(`/admin/config/providers/${id}`, data),
+  deleteProvider: (id: string) => apiClient.delete(`/admin/config/providers/${id}`),
+  activateProvider: (id: string) => apiClient.patch(`/admin/config/providers/${id}/activate`),
+  testProvider: (data: object) => apiClient.post('/admin/config/test', data),
 };

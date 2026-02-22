@@ -2,108 +2,124 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { ProductInfo, NoteOutline, GenerateNoteResponse } from '../../../shared/types/index';
 import { AIProvider } from './aiProvider';
+import axios from 'axios';
+import { PromptManager } from '../utils/promptManager';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const OUTLINE_INSTRUCTION = `
-你是一个专业的小红书运营专家。根据产品信息生成一个笔记大纲。
-输出必须是 JSON，字段：
-- titleSuggestions: 3个爆款标题
-- hook: 开头钩子
-- mainPoints: 3-5个要点
-- imagePrompts: 3-4张图的英文描述
+const ANALYSIS_INSTRUCTION = `你是小红书内容分析专家。分析笔记风格并输出 JSON。`;
 
-风格要求：大量 Emoji，语气亲切，制造焦虑或向往感。
-`;
+const PROMPTS_DIR = path.join(__dirname, '..', 'prompts');
 
-const NOTE_INSTRUCTION = `
-你是专业小红书文案写手。根据大纲创作完整笔记。
-要求：选最好标题、Emoji分隔段落、引导评论、5-8个热门标签。
-输出 JSON：title, content, tags (数组)。
-`;
+function loadFallbackPrompt(filename: string): string {
+  try {
+    return fs.readFileSync(path.join(PROMPTS_DIR, filename), 'utf-8');
+  } catch {
+    return '';
+  }
+}
 
-const ANALYSIS_INSTRUCTION = `
-你是小红书内容分析专家。分析给定的笔记内容，提取写作模式和风格。
-输出 JSON，包含：
-- name: 模板名称（基于内容主题）
-- category: 分类（如：美妆、美食、旅行、生活等）
-- titlePattern: 标题模式（用 {placeholder} 表示可变部分）
-- contentStructure: { sections: [{type, placeholder, guidelines}], estimatedLength }
-- styleGuide: { tone, emojiFrequency, emojiPlacement, paragraphStyle, keywords }
-- hashtagStrategy: 推荐标签数组
-- analysis: { titlePattern, contentFlow, emojiUsage, hashtagStrategy, writingStyle }
-`;
+/** 将 AI 返回的不确定结构映射为 GenerateNoteResponse */
+function normalizeNoteResponse(raw: Record<string, any>): GenerateNoteResponse {
+  return {
+    title: raw.title || (Array.isArray(raw.titles) ? raw.titles[0] : '') || '',
+    content: raw.content || raw.copywriting || '',
+    tags: raw.tags || [],
+  };
+}
 
 export class GeminiProvider implements AIProvider {
   private ai: GoogleGenAI;
+  private model: string;
 
-  constructor() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-    this.ai = new GoogleGenAI({ apiKey });
+  constructor(apiKey?: string, model?: string) {
+    const key = apiKey || process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('GEMINI_API_KEY not configured');
+    this.ai = new GoogleGenAI({ apiKey: key });
+    this.model = model || 'gemini-3-flash-preview';
   }
 
-  async generateOutline(info: ProductInfo): Promise<NoteOutline> {
-    const prompt = `产品名称: ${info.name}\n目标受众: ${info.audience}\n产品描述: ${info.description}\n核心功能: ${info.features}\n风格: ${info.style}`;
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
+  async generateOutline(info: ProductInfo & { pageCount?: number }): Promise<NoteOutline> {
+    const topic = `产品名称: ${info.name}\n目标受众: ${info.audience || '小红书用户'}\n产品描述: ${info.description}\n核心功能: ${info.features || '无'}\n风格: ${info.style || '通用'}\n期望页数: ${info.pageCount || '标准 (6-9页)'}`;
+
+    // 获取数据库中的大纲提示词，回退到文件
+    let systemInstruction = await PromptManager.getPrompt('outline-default', { topic });
+    if (!systemInstruction) {
+      systemInstruction = loadFallbackPrompt('outline_prompt.txt').replace(/{topic}/g, topic);
+    }
+    const isJsonRequested = systemInstruction.toLowerCase().includes('json');
+
+    const result = await this.ai.models.generateContent({
+      model: this.model,
+      contents: [{ role: 'user', parts: [{ text: topic }] }],
       config: {
-        systemInstruction: OUTLINE_INSTRUCTION,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            titleSuggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
-            hook: { type: Type.STRING },
-            mainPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-            imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-          },
-          required: ['titleSuggestions', 'hook', 'mainPoints', 'imagePrompts'],
-        },
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        responseMimeType: isJsonRequested ? 'application/json' : 'text/plain',
       },
     });
-    return JSON.parse(response.text || '{}');
+
+    const text = (result as any).text || '';
+
+    if (isJsonRequested) {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.warn('JSON 解析失败，尝试标签解析...');
+      }
+    }
+
+    // 针对非 JSON 或解析失败的情况，使用标签解析
+    const pages = PromptManager.parseTaggedPages(text);
+    return {
+      titleSuggestions: pages.slice(0, 3).map(p => p.title),
+      pages
+    };
   }
 
   async generateFullNote(outline: NoteOutline, info: ProductInfo): Promise<GenerateNoteResponse> {
-    const prompt = `大纲: ${JSON.stringify(outline)}\n基础信息: ${JSON.stringify(info)}`;
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
+    const topic = info.name || '小红书笔记';
+    const outlineText = outline.pages.map(p => `[${p.type === 'cover' ? '封面' : p.type === 'summary' ? '总结' : '内容'}]\n${p.title}\n${p.content}`).join('\n\n');
+
+    // 获取数据库中的文案提示词，回退到文件
+    let systemInstruction = await PromptManager.getPrompt('content-default', {
+      topic,
+      outline: outlineText
+    });
+    if (!systemInstruction) {
+      systemInstruction = loadFallbackPrompt('content_prompt.txt')
+        .replace(/{topic}/g, topic)
+        .replace(/{outline}/g, outlineText);
+    }
+
+    const result = await this.ai.models.generateContent({
+      model: this.model,
+      contents: [{ role: 'user', parts: [{ text: `根据以下大纲生成小红书文案。\n\n用户主题：${topic}\n\n大纲内容：\n${outlineText}` }] }],
       config: {
-        systemInstruction: NOTE_INSTRUCTION,
+        systemInstruction: { parts: [{ text: systemInstruction }] },
         responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            content: { type: Type.STRING },
-            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-          },
-          required: ['title', 'content', 'tags'],
-        },
       },
     });
-    return JSON.parse(response.text || '{}');
+    const text = (result as any).text;
+    const raw = JSON.parse(text || '{}');
+    return normalizeNoteResponse(raw);
   }
 
   async generateImage(prompt: string): Promise<string> {
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.0-flash-preview-image-generation',
-      contents: { parts: [{ text: `High quality Xiaohongshu style aesthetic photo: ${prompt}` }] },
-      config: { responseModalities: ['IMAGE', 'TEXT'] },
-    });
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
-    }
-    throw new Error('Failed to generate image');
+    // 默认使用 Pollinations.ai 作为 Gemini 的备选生图方式
+    const encoded = encodeURIComponent(`Xiaohongshu style aesthetic photo, ${prompt}`);
+    return `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true`;
   }
 
   async analyzeNote(content: string): Promise<unknown> {
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `请分析这篇小红书笔记的写作风格和结构模式：\n\n${content}`,
-      config: { systemInstruction: ANALYSIS_INSTRUCTION, responseMimeType: 'application/json' },
+    const result = await this.ai.models.generateContent({
+      model: this.model,
+      contents: [{ role: 'user', parts: [{ text: `请分析这篇小红书笔记：\n\n${content}` }] }],
+      config: {
+        systemInstruction: { parts: [{ text: ANALYSIS_INSTRUCTION }] },
+        responseMimeType: 'application/json'
+      },
     });
-    return JSON.parse(response.text || '{}');
+    const text = (result as any).text;
+    return JSON.parse(text || '{}');
   }
 }

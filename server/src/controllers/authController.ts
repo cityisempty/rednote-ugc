@@ -1,8 +1,9 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { AuthService } from '../services/authService';
 import { sendSuccess, sendError } from '../utils/response';
 import { AuthRequest } from '../middleware/auth';
+import { verifyRefreshToken, generateAccessToken } from '../utils/jwt';
 
 const authService = new AuthService();
 
@@ -40,4 +41,20 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     const user = await authService.getMe(req.user!.userId);
     sendSuccess(res, user);
   } catch (e: unknown) { sendError(res, (e as Error).message, 404); }
+};
+
+export const refresh = async (req: Request, res: Response): Promise<void> => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) { sendError(res, 'Refresh token required', 400); return; }
+  try {
+    const payload = verifyRefreshToken(refreshToken);
+    const accessToken = generateAccessToken({ userId: payload.userId, email: payload.email, role: payload.role });
+    sendSuccess(res, { accessToken });
+  } catch {
+    sendError(res, 'Invalid or expired refresh token', 401);
+  }
+};
+
+export const logout = async (_req: Request, res: Response): Promise<void> => {
+  sendSuccess(res, null, '已退出登录');
 };

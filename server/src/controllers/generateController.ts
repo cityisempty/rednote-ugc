@@ -6,10 +6,7 @@ import { AuthRequest } from '../middleware/auth';
 
 export const outlineValidation = [
   body('name').notEmpty().withMessage('产品名称不能为空'),
-  body('audience').notEmpty().withMessage('目标受众不能为空'),
   body('description').notEmpty().withMessage('产品描述不能为空'),
-  body('features').notEmpty().withMessage('核心功能不能为空'),
-  body('style').notEmpty().withMessage('风格不能为空'),
 ];
 
 export const generateOutline = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -31,10 +28,10 @@ export const generateNote = async (req: AuthRequest, res: Response): Promise<voi
 };
 
 export const generateImage = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { prompt, noteId } = req.body;
+  const { prompt, noteId, pageNumber } = req.body;
   if (!prompt) { sendError(res, '请提供图片描述', 400); return; }
   try {
-    const result = await generateService.generateImage(req.user!.userId, prompt, noteId);
+    const result = await generateService.generateImage(req.user!.userId, prompt, noteId, pageNumber);
     sendSuccess(res, result);
   } catch (e: unknown) { sendError(res, (e as Error).message, 400); }
 };

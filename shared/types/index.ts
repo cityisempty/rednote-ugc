@@ -79,11 +79,18 @@ export interface Transaction {
 
 // ==================== Nested Types ====================
 
+export interface NotePage {
+  pageNumber: number;
+  type: 'cover' | 'content' | 'summary';
+  title: string;
+  content: string;
+  imagePrompt: string;
+  imageUrl?: string;
+}
+
 export interface NoteOutline {
   titleSuggestions: string[];
-  hook: string;
-  mainPoints: string[];
-  imagePrompts: string[];
+  pages: NotePage[];
 }
 
 export interface TemplateSection {
@@ -158,6 +165,7 @@ export interface ProductInfo {
 
 export interface GenerateOutlineRequest extends ProductInfo {
   templateId?: string;
+  pageCount?: number;
 }
 
 export interface GenerateNoteRequest {
@@ -236,6 +244,7 @@ export const CREDIT_COSTS = {
   GENERATE_OUTLINE: 5,
   GENERATE_NOTE: 10,
   GENERATE_IMAGE: 15,
+  BATCH_GENERATE_IMAGES: 5, // 每张图片的消耗
   ANALYZE_NOTE: 8,
 } as const;
 

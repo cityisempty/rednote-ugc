@@ -32,7 +32,7 @@ const DashboardLayout: React.FC = () => {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 text-lg leading-tight">RedInk</h1>
+            <h1 className="font-bold text-slate-800 text-lg leading-tight">妙记</h1>
             <p className="text-xs text-slate-400">小红书创作平台</p>
           </div>
         </div>
@@ -137,7 +137,7 @@ const DashboardLayout: React.FC = () => {
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-500">
             <Menu className="w-5 h-5" />
           </button>
-          <span className="font-bold text-slate-800">RedInk</span>
+          <span className="font-bold text-slate-800">妙记</span>
         </header>
 
         <main className="flex-1 overflow-y-auto">
