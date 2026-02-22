@@ -6,7 +6,9 @@ COPY package.json package-lock.json ./
 COPY shared/ shared/
 COPY client/ client/
 
-RUN npm ci --workspace=client --workspace=shared --include-workspace-root
+# npm ci may miss platform-specific optional deps (rollup native modules)
+# so we delete lock, install fresh for this platform, then build
+RUN npm install --workspace=client --workspace=shared --include-workspace-root
 ENV VITE_API_URL=/api
 RUN npm run build --workspace=client
 
@@ -19,7 +21,7 @@ COPY package.json package-lock.json ./
 COPY shared/ shared/
 COPY server/ server/
 
-RUN npm ci --workspace=server --workspace=shared --include-workspace-root
+RUN npm install --workspace=server --workspace=shared --include-workspace-root
 RUN npx --workspace=server prisma generate
 RUN npm run build --workspace=server
 
