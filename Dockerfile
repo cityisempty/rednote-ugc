@@ -40,10 +40,8 @@ RUN npm install -g tsx
 COPY --from=server-build /app/server/dist/ server/dist/
 COPY --from=server-build /app/server/package.json server/package.json
 
-# Copy server runtime node_modules
-COPY --from=server-build /app/server/node_modules/ server/node_modules/
-COPY --from=server-build /app/node_modules/.prisma/ node_modules/.prisma/
-COPY --from=server-build /app/node_modules/@prisma/ node_modules/@prisma/
+# Copy ALL node_modules from root (npm workspaces hoists deps here)
+COPY --from=server-build /app/node_modules/ node_modules/
 
 # Prisma schema + migrations + seed
 COPY --from=server-build /app/server/prisma/ server/prisma/
