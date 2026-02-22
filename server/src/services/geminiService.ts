@@ -1,3 +1,3 @@
-// Deprecated: use aiProvider from ./aiProvider instead
+// Deprecated: use imports from ./aiProvider and ./geminiProvider directly
 export { GeminiProvider as GeminiService } from './geminiProvider';
-export { aiProvider as geminiService } from './aiProvider';
+export { textProvider as geminiService } from './aiProvider';

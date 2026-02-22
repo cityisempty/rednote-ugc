@@ -29,7 +29,7 @@ export const createProviderConfig = async (req: Request, res: Response) => {
 
 export const updateProviderConfig = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const data = req.body;
         const config = await prisma.aIProviderConfig.update({
             where: { id },
@@ -43,7 +43,7 @@ export const updateProviderConfig = async (req: Request, res: Response) => {
 
 export const deleteProviderConfig = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         await prisma.aIProviderConfig.delete({ where: { id } });
         sendSuccess(res, { message: 'Deleted successfully' });
     } catch (error: any) {
@@ -53,7 +53,7 @@ export const deleteProviderConfig = async (req: Request, res: Response) => {
 
 export const activateProvider = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const id = req.params.id as string;
         const target = await prisma.aIProviderConfig.findUnique({ where: { id } });
         if (!target) return sendError(res, 'Provider not found', 404);
 
