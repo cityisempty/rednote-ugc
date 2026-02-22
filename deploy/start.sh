@@ -13,4 +13,4 @@ echo "==> Starting Nginx..."
 nginx
 
 echo "==> Starting Node.js server..."
-exec node dist/index.js
+exec node dist/server/src/index.js

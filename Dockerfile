@@ -36,7 +36,7 @@ RUN apk add --no-cache nginx openssl
 # Install tsx globally for prisma seed at startup
 RUN npm install -g tsx
 
-# Copy server compiled output
+# Copy server compiled output (tsc outputs to dist/server/src/ due to shared include)
 COPY --from=server-build /app/server/dist/ server/dist/
 COPY --from=server-build /app/server/package.json server/package.json
 
@@ -46,8 +46,10 @@ COPY --from=server-build /app/node_modules/ node_modules/
 # Prisma schema + migrations + seed
 COPY --from=server-build /app/server/prisma/ server/prisma/
 
-# Prompt files (runtime fallback)
-COPY server/src/prompts/ server/dist/prompts/
+# Prompt files (runtime fallback) - placed relative to compiled services
+COPY server/src/prompts/ server/dist/server/src/prompts/
+# Also copy to server/src/prompts/ for seed.ts which reads from source path
+COPY server/src/prompts/ server/src/prompts/
 
 # Shared types (seed.ts imports from shared)
 COPY shared/ shared/
