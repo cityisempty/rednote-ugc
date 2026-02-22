@@ -4,35 +4,17 @@ services:
     container_name: miaoji
     restart: unless-stopped
     ports:
-      - "3080:80"
+      - "${APP_PORT:-3080}:80"
+    env_file: .env
     environment:
-      # Database (points to the postgres service below)
-      - DATABASE_URL=postgresql://miaoji:miaoji_password_change_me@postgres:5432/miaoji?schema=public
-
-      # JWT secrets — CHANGE THESE in production!
-      - JWT_SECRET=your-jwt-secret-change-me-in-production
-      - JWT_REFRESH_SECRET=your-refresh-secret-change-me-in-production
-      - JWT_EXPIRES_IN=15m
-      - JWT_REFRESH_EXPIRES_IN=7d
-
-      # Server
+      # Database URL auto-constructed from postgres service credentials
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-miaoji}:${POSTGRES_PASSWORD:-miaoji_secret}@postgres:5432/${POSTGRES_DB:-miaoji}?schema=public
       - PORT=5001
       - NODE_ENV=production
-
-      # === AI Configuration ===
-      # Text generation (Gemini)
-      - TEXT_PROVIDER=gemini
-      - TEXT_MODEL=gemini-3-flash-preview
-      - TEXT_API_KEY=your-gemini-api-key
-      - GEMINI_API_KEY=your-gemini-api-key
-
-      # Image generation (choose one: openai / nanobanana)
-      - IMAGE_PROVIDER=openai
-      - IMAGE_MODEL=your-image-model
-      - IMAGE_API_KEY=your-image-api-key
-      - IMAGE_BASE_URL=https://your-image-api-base-url/v1
     volumes:
       - miaoji_uploads:/app/server/uploads
+      # Mount prompts so you can edit them without rebuilding
+      - ./server/src/prompts:/app/server/dist/prompts
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,13 +24,16 @@ services:
     container_name: miaoji-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: miaoji
-      POSTGRES_USER: miaoji
-      POSTGRES_PASSWORD: miaoji_password_change_me
+      POSTGRES_DB: ${POSTGRES_DB:-miaoji}
+      POSTGRES_USER: ${POSTGRES_USER:-miaoji}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-miaoji_secret}
     volumes:
       - miaoji_pgdata:/var/lib/postgresql/data
+    # Uncomment to expose DB port for external tools (e.g. pgAdmin, DBeaver)
+    # ports:
+    #   - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U miaoji"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-miaoji}"]
       interval: 5s
       timeout: 5s
       retries: 5
