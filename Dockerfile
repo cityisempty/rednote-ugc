@@ -31,7 +31,7 @@ RUN npm run build --workspace=server
 FROM node:20-alpine
 WORKDIR /app
 
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx openssl
 
 # Install tsx globally for prisma seed at startup
 RUN npm install -g tsx
