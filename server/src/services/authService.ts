@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import prisma from '../utils/prisma';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
 import { RegisterRequest, LoginRequest, AuthResponse, WELCOME_CREDITS, Role } from '../../../shared/types/index';
