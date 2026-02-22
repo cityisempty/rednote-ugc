@@ -2,12 +2,13 @@
 FROM node:20-alpine AS client-build
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY shared/ shared/
 COPY client/ client/
 
-# npm ci may miss platform-specific optional deps (rollup native modules)
-# so we delete lock, install fresh for this platform, then build
+# package-lock.json is generated on macOS and locks darwin-specific
+# optional deps (rollup native binaries). Drop it so npm resolves
+# the correct linux-musl variants fresh.
 RUN npm install --workspace=client --workspace=shared --include-workspace-root
 ENV VITE_API_URL=/api
 RUN npm run build --workspace=client
@@ -17,7 +18,7 @@ RUN npm run build --workspace=client
 FROM node:20-alpine AS server-build
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY shared/ shared/
 COPY server/ server/
 
