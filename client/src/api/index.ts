@@ -42,4 +42,20 @@ export const adminConfigApi = {
   deleteProvider: (id: string) => apiClient.delete(`/admin/config/providers/${id}`),
   activateProvider: (id: string) => apiClient.patch(`/admin/config/providers/${id}/activate`),
   testProvider: (data: object) => apiClient.post('/admin/config/test', data),
+  fetchModels: (data: { provider: string; apiKey: string; baseUrl?: string }) =>
+    apiClient.post('/admin/config/models', data),
+};
+
+export const xhsApi = {
+  checkLogin: () => apiClient.get('/xhs/login/status'),
+  getQrcode: () => apiClient.get('/xhs/login/qrcode'),
+  logout: () => apiClient.delete('/xhs/login'),
+  listFeeds: () => apiClient.get('/xhs/feeds'),
+  searchFeeds: (data: object) => apiClient.post('/xhs/feeds/search', data),
+  getFeedDetail: (data: object) => apiClient.post('/xhs/feeds/detail', data),
+  getMyProfile: () => apiClient.get('/xhs/profile/me'),
+  publish: (data: object) => apiClient.post('/xhs/publish', data),
+  likeFeed: (data: object) => apiClient.post('/xhs/feeds/like', data),
+  favoriteFeed: (data: object) => apiClient.post('/xhs/feeds/favorite', data),
+  commentOnFeed: (data: object) => apiClient.post('/xhs/feeds/comment', data),
 };

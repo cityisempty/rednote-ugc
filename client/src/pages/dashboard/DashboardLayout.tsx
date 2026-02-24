@@ -3,13 +3,14 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import {
   Sparkles, LayoutTemplate, History, User, Shield,
-  LogOut, Coins, Menu, X, ChevronRight
+  LogOut, Coins, Menu, X, ChevronRight, BarChart2
 } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: '创作中心', icon: Sparkles, end: true },
   { to: '/dashboard/templates', label: '模板广场', icon: LayoutTemplate },
   { to: '/dashboard/history', label: '历史记录', icon: History },
+  { to: '/dashboard/xhs', label: 'XHS 数据', icon: BarChart2 },
   { to: '/dashboard/profile', label: '个人中心', icon: User },
 ];
 

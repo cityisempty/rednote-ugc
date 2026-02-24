@@ -11,6 +11,7 @@ import notesRoutes from './routes/notesRoutes';
 import templatesRoutes from './routes/templatesRoutes';
 import adminRoutes from './routes/adminRoutes';
 import configRoutes from './routes/configRoutes';
+import xhsRoutes from './routes/xhsRoutes';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -34,6 +35,7 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/templates', templatesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/config', configRoutes);
+app.use('/api/xhs', xhsRoutes);
 
 // Error handler
 app.use(errorHandler);

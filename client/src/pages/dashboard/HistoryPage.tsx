@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { notesApi } from '../../api';
-import { History as HistoryIcon, Search, Trash2, Eye, Copy, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { notesApi, xhsApi } from '../../api';
+import { History as HistoryIcon, Search, Trash2, Eye, Copy, Check, AlertCircle, Loader2, Send } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { getFullImageUrl } from '../../utils/format';
@@ -37,6 +37,7 @@ const HistoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Note | null>(null);
   const [copied, setCopied] = useState(false);
+  const [publishLoading, setPublishLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 10;
@@ -106,6 +107,34 @@ const HistoryPage: React.FC = () => {
     navigator.clipboard.writeText(`${selected.title}\n\n${selected.content}\n\n${selected.tags.map((t) => `#${t}`).join(' ')}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePublishToXhs = async () => {
+    if (!selected) return;
+    const title = selected.title?.slice(0, 20) || '';
+    const content = selected.content?.slice(0, 1000) || '';
+    if (!title || !content) { setError('标题和内容不能为空'); return; }
+    const warnings: string[] = [];
+    if (selected.title.length > 20) warnings.push(`标题将被截断为20字符`);
+    if (selected.content.length > 1000) warnings.push(`内容将被截断为1000字符`);
+    const msg = warnings.length > 0
+      ? `注意: ${warnings.join('；')}。确定发布到小红书吗？`
+      : '确定发布到小红书吗？';
+    if (!confirm(msg)) return;
+    setPublishLoading(true);
+    try {
+      await xhsApi.publish({
+        title,
+        content,
+        images: selected.images || [],
+        tags: selected.tags || undefined,
+      });
+      alert('发布成功！');
+    } catch {
+      setError('发布到小红书失败');
+    } finally {
+      setPublishLoading(false);
+    }
   };
 
   const updateSelectedOutline = (pageNumber: number, field: keyof NotePage, value: string) => {
@@ -242,6 +271,13 @@ const HistoryPage: React.FC = () => {
                   className="px-5 py-2.5 rounded-2xl bg-slate-100 text-slate-700 text-sm font-bold flex items-center gap-2 hover:bg-slate-200 transition-all"
                 >
                   <Copy className="w-4 h-4" /> 打包下载
+                </button>
+                <button
+                  onClick={handlePublishToXhs}
+                  disabled={publishLoading}
+                  className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 text-white text-sm font-bold flex items-center gap-2 hover:from-orange-600 hover:to-rose-600 transition-all shadow-lg shadow-orange-200"
+                >
+                  {publishLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} 发布到小红书
                 </button>
                 <button
                   onClick={handleSaveEdit}

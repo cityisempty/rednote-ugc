@@ -9,6 +9,7 @@ import TemplatePage from './pages/dashboard/TemplatePage';
 import HistoryPage from './pages/dashboard/HistoryPage';
 import ProfilePage from './pages/dashboard/ProfilePage';
 import AdminPage from './pages/dashboard/AdminPage';
+import XhsAnalyticsPage from './pages/dashboard/XhsAnalyticsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, initialized } = useAuthStore();
@@ -47,6 +48,7 @@ const App: React.FC = () => {
           <Route index element={<GeneratorPage />} />
           <Route path="templates" element={<TemplatePage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="xhs" element={<XhsAnalyticsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Route>
